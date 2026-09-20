@@ -11,29 +11,29 @@ from bs4 import BeautifulSoup
 
 from app.config import settings
 
+_client = httpx.AsyncClient(
+    headers={
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 "
+            "(KHTML, like Gecko) "
+            "Chrome/140.0.0.0 Safari/537.36"
+        ),
+        "Accept": "*/*",
+    },
+    timeout=90,
+    follow_redirects=True,
+)
+
 
 async def _request(
     url: str,
     params: dict[str, str] | None = None,
 ) -> httpx.Response:
     try:
-        async with httpx.AsyncClient(
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) "
-                    "AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) "
-                    "Chrome/140.0.0.0 Safari/537.36"
-                ),
-                "Accept": "*/*",
-            },
-            timeout=90,
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-
-            return response
+        response = await _client.get(url, params=params)
+        response.raise_for_status()
+        return response
 
     except httpx.HTTPStatusError as e:
         raise RuntimeError(
@@ -99,7 +99,6 @@ async def _get_risk_factor_pdf(url: str) -> str:
             xml_content = raw.read()
 
     soup = BeautifulSoup(xml_content, "xml")
-
     riskFactorDesc = soup.find("DescricaoFatoresRisco")
 
     if not riskFactorDesc:
@@ -116,11 +115,12 @@ async def _get_risk_factor_pdf(url: str) -> str:
 
 
 async def extract_risk_factor_text_by_ticker(ticker: str) -> str:
-    cnpj = await _extract_cnpj_by_ticker_from_b3(ticker)
-    fre = await _get_latest_fre_url_to_download(cnpj)
-    document = await _get_risk_factor_pdf(fre)
-
     try:
-        return " ".join(page.get_text() for page in document)
+        cnpj = await _extract_cnpj_by_ticker_from_b3(ticker)
+        fre = await _get_latest_fre_url_to_download(cnpj)
+        document = await _get_risk_factor_pdf(fre)
+
+        return "\n".join(page.get_text() for page in document)
     finally:
         document.close()
+        await _client.aclose()

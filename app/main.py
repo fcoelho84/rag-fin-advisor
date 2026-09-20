@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 
-from app.routers.extractor import router as extractorRoute
+from app.routers.analyze import router
 
 app = FastAPI()
 
-app.include_router(extractorRoute)
+app.include_router(router)
 
 
 @app.get("/")
 async def read_root() -> str:
-    return ["OK"]
+    return "UP"

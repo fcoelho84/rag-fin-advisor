@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     B3_SEARCH_URL: str
     CVM_SEARCH_URL: str
     CVM_FRE_DOWNLOAD: str
+    HUGGING_FACE_MODEL: str
+    QDRANT_API_KEY: str
+    QDRANT_CLUSTER_URL: str
+    HF_TOKEN: str
 
 
 settings = Settings()
